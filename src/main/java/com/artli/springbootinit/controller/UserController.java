@@ -1,35 +1,28 @@
 package com.artli.springbootinit.controller;
 
-import com.artli.springbootinit.annotation.AuthCheck;
-import com.artli.springbootinit.common.BaseResponse;
-import com.artli.springbootinit.common.DeleteRequest;
-import com.artli.springbootinit.common.ErrorCode;
-import com.artli.springbootinit.common.ResultUtils;
-import com.artli.springbootinit.config.WxOpenConfig;
-import com.artli.springbootinit.model.entity.User;
-import com.artli.springbootinit.model.vo.LoginUserVO;
-import com.artli.springbootinit.model.vo.UserVO;
-import com.artli.springbootinit.service.UserService;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.artli.springbootinit.constant.UserConstant;
-import com.artli.springbootinit.exception.BusinessException;
-import com.artli.springbootinit.exception.ThrowUtils;
-import com.artli.springbootinit.model.dto.user.UserAddRequest;
-import com.artli.springbootinit.model.dto.user.UserLoginRequest;
-import com.artli.springbootinit.model.dto.user.UserQueryRequest;
-import com.artli.springbootinit.model.dto.user.UserRegisterRequest;
-import com.artli.springbootinit.model.dto.user.UserUpdateMyRequest;
-import com.artli.springbootinit.model.dto.user.UserUpdateRequest;
+
 
 import java.util.List;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.artli.springbootinit.annotation.AuthCheck;
+import com.artli.springbootinit.common.BaseResponse;
+import com.artli.springbootinit.common.DeleteRequest;
+import com.artli.springbootinit.common.ErrorCode;
+import com.artli.springbootinit.common.ResultUtils;
+import com.artli.springbootinit.constant.UserConstant;
+import com.artli.springbootinit.exception.BusinessException;
+import com.artli.springbootinit.exception.ThrowUtils;
+import com.artli.springbootinit.model.dto.user.*;
+import com.artli.springbootinit.model.entity.User;
+import com.artli.springbootinit.model.vo.LoginUserVO;
+import com.artli.springbootinit.model.vo.UserVO;
+import com.artli.springbootinit.service.UserService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
-import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
-import me.chanjar.weixin.common.bean.oauth2.WxOAuth2AccessToken;
-import me.chanjar.weixin.mp.api.WxMpService;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.util.DigestUtils;
@@ -54,8 +47,6 @@ public class UserController {
     @Resource
     private UserService userService;
 
-    @Resource
-    private WxOpenConfig wxOpenConfig;
 
     // region 登录相关
 
@@ -101,28 +92,28 @@ public class UserController {
         return ResultUtils.success(loginUserVO);
     }
 
-    /**
-     * 用户登录（微信开放平台）
-     */
-    @GetMapping("/login/wx_open")
-    public BaseResponse<LoginUserVO> userLoginByWxOpen(HttpServletRequest request, HttpServletResponse response,
-            @RequestParam("code") String code) {
-        WxOAuth2AccessToken accessToken;
-        try {
-            WxMpService wxService = wxOpenConfig.getWxMpService();
-            accessToken = wxService.getOAuth2Service().getAccessToken(code);
-            WxOAuth2UserInfo userInfo = wxService.getOAuth2Service().getUserInfo(accessToken, code);
-            String unionId = userInfo.getUnionId();
-            String mpOpenId = userInfo.getOpenid();
-            if (StringUtils.isAnyBlank(unionId, mpOpenId)) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
-            }
-            return ResultUtils.success(userService.userLoginByMpOpen(userInfo, request));
-        } catch (Exception e) {
-            log.error("userLoginByWxOpen error", e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
-        }
-    }
+//    /**
+//     * 用户登录（微信开放平台）
+//     */
+//    @GetMapping("/login/wx_open")
+//    public BaseResponse<LoginUserVO> userLoginByWxOpen(HttpServletRequest request, HttpServletResponse response,
+//            @RequestParam("code") String code) {
+//        WxOAuth2AccessToken accessToken;
+//        try {
+//            WxMpService wxService = wxOpenConfig.getWxMpService();
+//            accessToken = wxService.getOAuth2Service().getAccessToken(code);
+//            WxOAuth2UserInfo userInfo = wxService.getOAuth2Service().getUserInfo(accessToken, code);
+//            String unionId = userInfo.getUnionId();
+//            String mpOpenId = userInfo.getOpenid();
+//            if (StringUtils.isAnyBlank(unionId, mpOpenId)) {
+//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
+//            }
+//            return ResultUtils.success(userService.userLoginByMpOpen(userInfo, request));
+//        } catch (Exception e) {
+//            log.error("userLoginByWxOpen error", e);
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
+//        }
+//    }
 
     /**
      * 用户注销
@@ -259,7 +250,7 @@ public class UserController {
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<User>> listUserByPage(@RequestBody UserQueryRequest userQueryRequest,
-            HttpServletRequest request) {
+                                                   HttpServletRequest request) {
         long current = userQueryRequest.getCurrent();
         long size = userQueryRequest.getPageSize();
         Page<User> userPage = userService.page(new Page<>(current, size),

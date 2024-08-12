@@ -1,7 +1,7 @@
 # 公共配置文件
 spring:
   application:
-    name: springboot-init
+    name: artli
   # 默认 dev 环境
   profiles:
     active: dev
@@ -19,7 +19,7 @@ spring:
   # todo 需替换配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/my_db
+    url: jdbc:mysql://localhost:3306/yunzhibi
     username: root
     password: root
   # Redis 配置
