@@ -1,44 +1,39 @@
 package com.artli.springbootinit.controller;
-
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.json.JSONUtil;
 import com.artli.springbootinit.annotation.AuthCheck;
 import com.artli.springbootinit.common.BaseResponse;
 import com.artli.springbootinit.common.DeleteRequest;
 import com.artli.springbootinit.common.ErrorCode;
 import com.artli.springbootinit.common.ResultUtils;
 import com.artli.springbootinit.constant.CommonConstant;
+import com.artli.springbootinit.constant.FileConstant;
 import com.artli.springbootinit.constant.UserConstant;
 import com.artli.springbootinit.exception.BusinessException;
 import com.artli.springbootinit.exception.ThrowUtils;
 
-import com.artli.springbootinit.model.dto.chart.ChartAddRequest;
-import com.artli.springbootinit.model.dto.chart.ChartEditRequest;
-import com.artli.springbootinit.model.dto.chart.ChartQueryRequest;
-import com.artli.springbootinit.model.dto.chart.ChartUpdateRequest;
-import com.artli.springbootinit.model.dto.post.PostQueryRequest;
+import com.artli.springbootinit.model.dto.chart.*;
+
 import com.artli.springbootinit.model.entity.Chart;
 
 import com.artli.springbootinit.model.entity.Post;
 import com.artli.springbootinit.model.entity.User;
+import com.artli.springbootinit.model.enums.FileUploadBizEnum;
 import com.artli.springbootinit.service.ChartService;
 import com.artli.springbootinit.service.UserService;
+import com.artli.springbootinit.utils.ExeclUtils;
 import com.artli.springbootinit.utils.SqlUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
-import java.util.List;
+
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 图表接口
@@ -249,6 +244,7 @@ public class ChartController {
         if (chartQueryRequest == null) {
             return queryWrapper;
         }
+        String name = chartQueryRequest.getName();
         String goal = chartQueryRequest.getGoal();
         String chartType = chartQueryRequest.getChartType();
         Long userId = chartQueryRequest.getUserId();
@@ -259,10 +255,69 @@ public class ChartController {
         queryWrapper.like( id !=null && id > 0, "id", id);
         queryWrapper.like(StringUtils.isNotBlank(goal), "goal", goal);
         queryWrapper.like(StringUtils.isNotBlank(chartType), "chartType", chartType);
+        queryWrapper.like(StringUtils.isNotBlank(name), "name", name);
         queryWrapper.eq("isDelete",false);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;
     }
+
+    /**
+     * AI分析
+     *
+     * @param multipartFile
+     * @param chartgetRequest
+     * @return
+     */
+    @PostMapping("/gen")
+    public BaseResponse<String> intelGetByAi(@RequestPart("file") MultipartFile multipartFile,
+                                             ChartgetRequest chartgetRequest) {
+
+
+        String goal = chartgetRequest.getGoal();
+        String name = chartgetRequest.getName();
+        String chartType = chartgetRequest.getChartType();
+        //校验
+        ThrowUtils.throwIf(StringUtils.isBlank(goal),ErrorCode.PARAMS_ERROR,"目标为空！");
+        ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() >100 ,ErrorCode.PARAMS_ERROR,"字符长度不能大于100！");
+
+        String res = ExeclUtils.excelToCsv(multipartFile);
+
+        return  ResultUtils.success(res);
+
+
+//        String biz = uploadFileRequest.getBiz();
+//        FileUploadBizEnum fileUploadBizEnum = FileUploadBizEnum.getEnumByValue(biz);
+//        if (fileUploadBizEnum == null) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
+//        validFile(multipartFile, fileUploadBizEnum);
+//        User loginUser = userService.getLoginUser(request);
+//        // 文件目录：根据业务、用户来划分
+//        String uuid = RandomStringUtils.randomAlphanumeric(8);
+//
+//        File file = null;
+//        try {
+//            // 上传文件
+////            file = File.createTempFile(filepath, null);
+////            multipartFile.transferTo(file);
+////            cosManager.putObject(filepath, file);
+//
+//            // 返回可访问地址
+//            return null;
+//        } catch (Exception e) {
+////            log.error("file upload error, filepath = " + filepath, e);
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
+//        } finally {
+//            if (file != null) {
+//                // 删除临时文件
+//                boolean delete = file.delete();
+//                if (!delete) {
+////                    log.error("file delete error, filepath = {}", filepath);
+//                }
+//            }
+//        }
+    }
+
 }
