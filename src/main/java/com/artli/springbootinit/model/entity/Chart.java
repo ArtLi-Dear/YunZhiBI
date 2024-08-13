@@ -19,10 +19,16 @@ public class Chart implements Serializable {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
+
     /**
      * 分析目标
      */
     private String goal;
+
+    /**
+     * 名称
+     */
+    private String name;
 
     /**
      * 图表数据
