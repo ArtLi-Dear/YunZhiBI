@@ -28,12 +28,6 @@ public class ExeclUtils {
 
     public static String excelToCsv(MultipartFile multipartFile) {
 
-//        File file = null;
-//        try {
-//            file = ResourceUtils.getFile(multipartFile.getInputStream());
-//        } catch (FileNotFoundException e) {
-//            throw new RuntimeException(e);
-//        }
         List<Map<Integer, String>> list = null;
 
         try {

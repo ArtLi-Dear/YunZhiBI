@@ -282,9 +282,14 @@ public class ChartController {
         ThrowUtils.throwIf(StringUtils.isBlank(goal),ErrorCode.PARAMS_ERROR,"目标为空！");
         ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() >100 ,ErrorCode.PARAMS_ERROR,"字符长度不能大于100！");
 
+        //用户输入
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("你是一个数据分析师,接下来我会给你我的分析目标和原始数据，请告诉我分析结论").append("\n");
+        userInput.append("分析目标：").append(goal).append("\n");
         String res = ExeclUtils.excelToCsv(multipartFile);
+        userInput.append("结论:").append(res).append("\n");
 
-        return  ResultUtils.success(res);
+        return  ResultUtils.success(userInput.toString());
 
 
 //        String biz = uploadFileRequest.getBiz();
