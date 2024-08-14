@@ -17,7 +17,7 @@ class AiManagerTest {
     private AiManager aiManager;
     @Test
     void doChat() {
-        String doChat = aiManager.doChat("你好");
+        String doChat = aiManager.doChat(1823539496730746882L,"你好");
 
         System.out.println(doChat);
     }

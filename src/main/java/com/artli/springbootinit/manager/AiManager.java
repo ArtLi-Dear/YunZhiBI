@@ -17,13 +17,15 @@ public class AiManager {
 
     @Resource
     private YuCongMingClient yuCongMingClient;
-    private static final Long AI_ID = 1823539496730746882L;
 
 
-    public String doChat(String message){
+
+
+
+    public String doChat(Long id,String message){
 
         DevChatRequest chatRequest = new DevChatRequest();
-        chatRequest.setModelId(AI_ID);
+        chatRequest.setModelId(id);
         chatRequest.setMessage(message);
 
         BaseResponse<DevChatResponse> responseBaseResponse = yuCongMingClient.doChat(chatRequest);

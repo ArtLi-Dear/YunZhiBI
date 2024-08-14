@@ -1,4 +1,6 @@
 package com.artli.springbootinit.controller;
+import cn.hutool.core.util.StrUtil;
+import com.alibaba.excel.EasyExcel;
 import com.artli.springbootinit.annotation.AuthCheck;
 import com.artli.springbootinit.common.BaseResponse;
 import com.artli.springbootinit.common.DeleteRequest;
@@ -10,6 +12,7 @@ import com.artli.springbootinit.constant.UserConstant;
 import com.artli.springbootinit.exception.BusinessException;
 import com.artli.springbootinit.exception.ThrowUtils;
 
+import com.artli.springbootinit.manager.AiManager;
 import com.artli.springbootinit.model.dto.chart.*;
 
 import com.artli.springbootinit.model.entity.Chart;
@@ -17,6 +20,7 @@ import com.artli.springbootinit.model.entity.Chart;
 import com.artli.springbootinit.model.entity.Post;
 import com.artli.springbootinit.model.entity.User;
 import com.artli.springbootinit.model.enums.FileUploadBizEnum;
+import com.artli.springbootinit.model.vo.BiResponse;
 import com.artli.springbootinit.service.ChartService;
 import com.artli.springbootinit.service.UserService;
 import com.artli.springbootinit.utils.ExeclUtils;
@@ -27,6 +31,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 
@@ -270,9 +276,12 @@ public class ChartController {
      * @param chartgetRequest
      * @return
      */
+    @Resource
+    private  AiManager aiManager;
+    private static final Long AI_ID = 1823539496730746882L;
     @PostMapping("/gen")
-    public BaseResponse<String> intelGetByAi(@RequestPart("file") MultipartFile multipartFile,
-                                             ChartgetRequest chartgetRequest) {
+    public BaseResponse<BiResponse> intelGetByAi(@RequestPart("file") MultipartFile multipartFile,
+                                                 ChartgetRequest chartgetRequest, HttpServletRequest request) {
 
 
         String goal = chartgetRequest.getGoal();
@@ -282,14 +291,54 @@ public class ChartController {
         ThrowUtils.throwIf(StringUtils.isBlank(goal),ErrorCode.PARAMS_ERROR,"目标为空！");
         ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() >100 ,ErrorCode.PARAMS_ERROR,"字符长度不能大于100！");
 
-        //用户输入
+        //拼接用户输入
         StringBuilder userInput = new StringBuilder();
-        userInput.append("你是一个数据分析师,接下来我会给你我的分析目标和原始数据，请告诉我分析结论").append("\n");
-        userInput.append("分析目标：").append(goal).append("\n");
-        String res = ExeclUtils.excelToCsv(multipartFile);
-        userInput.append("结论:").append(res).append("\n");
 
-        return  ResultUtils.success(userInput.toString());
+        userInput.append("分析需求:").append("\n");
+        //拼接分析目标
+        if (StrUtil.isNotBlank(chartType)) {
+            goal+= goal + ",请使用" + chartType;
+        }
+        userInput.append(goal).append("\n");
+        userInput.append("原始数据").append("\n");
+        //拼接分析数据
+        String toCsv = ExeclUtils.excelToCsv(multipartFile);
+        userInput.append(toCsv).append("\n");
+
+
+        String result = aiManager.doChat(AI_ID, userInput.toString());
+
+        String[] split = result.split("【【【【【");
+
+        if (split.length < 3) {
+            throw  new BusinessException(ErrorCode.SYSTEM_ERROR,"AI生成错误");
+        }
+        //获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+
+        String genChart = split[1].trim();
+        String genResult = split[2].trim();
+        Chart chart = new Chart();
+        chart.setGoal(goal);
+        chart.setName(name);
+        chart.setChartData(toCsv);
+        chart.setChartType(chartType);
+        chart.setGenChart(genChart);
+        chart.setGenResult(genResult);
+        chart.setUserId(loginUser.getId());
+
+        boolean save = chartService.save(chart);
+        ThrowUtils.throwIf(!save,ErrorCode.SYSTEM_ERROR,"图表保存失败");
+        BiResponse biResponse = new BiResponse();
+        biResponse.setGenChart(chart.getGenChart());
+        biResponse.setGenResult(chart.getGenResult());
+        biResponse.setChartId(chart.getId());
+
+
+
+
+
+        return  ResultUtils.success(biResponse);
 
 
 //        String biz = uploadFileRequest.getBiz();
