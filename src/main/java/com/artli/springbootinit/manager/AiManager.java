@@ -18,10 +18,6 @@ public class AiManager {
     @Resource
     private YuCongMingClient yuCongMingClient;
 
-
-
-
-
     public String doChat(Long id,String message){
 
         DevChatRequest chatRequest = new DevChatRequest();

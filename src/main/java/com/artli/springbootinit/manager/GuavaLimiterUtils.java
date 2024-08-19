@@ -16,7 +16,7 @@ public class GuavaLimiterUtils {
     /**
      * 获取或创建一个 RateLimiter 实例。
      *
-     * @param name           RateLimiter 的名称，用于标识不同的 RateLimiter 实例。
+     * @param id           RateLimiter 的名称，用于标识不同的 RateLimiter 实例。
      * @param permitsPerSec  每秒允许的请求数量。
      * @return RateLimiter 实例。
      */
@@ -24,17 +24,5 @@ public class GuavaLimiterUtils {
         return limiters.computeIfAbsent(id, n -> RateLimiter.create(permitsPerSec));
     }
 
-    /**
-     * 尝试获取令牌。
-     *
-     * @param id RateLimiter 的名称。
-     * @return 是否成功获取到令牌。
-     */
-    public static boolean tryAcquire(Long id) {
-        RateLimiter rateLimiter = limiters.get(id);
-        if (rateLimiter != null) {
-            return rateLimiter.tryAcquire();
-        }
-        return false;
-    }
+
 }
