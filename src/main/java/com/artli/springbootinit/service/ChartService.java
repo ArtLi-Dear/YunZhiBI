@@ -18,4 +18,6 @@ import javax.servlet.http.HttpServletRequest;
 public interface ChartService extends IService<Chart> {
 
     BaseResponse<BiResponse> intelGetByAi(MultipartFile multipartFile, ChartgetRequest chartgetRequest, HttpServletRequest request);
+
+    BaseResponse<BiResponse> intelGetByAiAsc(MultipartFile multipartFile, ChartgetRequest chartgetRequest, HttpServletRequest request);
 }

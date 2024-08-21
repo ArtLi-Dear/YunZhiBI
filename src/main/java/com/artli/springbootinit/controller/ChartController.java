@@ -285,4 +285,11 @@ public class ChartController {
 
     }
 
+    @PostMapping("/gen/async")
+    public BaseResponse<BiResponse> intelGetByAiAsc(@RequestPart("file") MultipartFile multipartFile,
+                                                 ChartgetRequest chartgetRequest, HttpServletRequest request) {
+
+        return  chartService.intelGetByAiAsc(multipartFile,chartgetRequest,request);
+
+    }
 }
