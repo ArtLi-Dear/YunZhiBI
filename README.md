@@ -1,174 +1,332 @@
-# SpringBoot 项目初始模板
-基于 Java SpringBoot 的项目初始模板，整合了常用框架和主流业务的示例代码。
+<h1 id="w6I4s"><font style="color:#000000;">一、项目概述</font></h1>
+<font style="color:#000000;">在传统的数据分析平台中，如果我们想要分析近一年网站的用户增长趋势，通常需要手动导入数据、选择要分析的字段和图表，并由专业的数据分析师完成分析，最后得出结论。然而，本次设计的项目与传统平台有所不同。在这个项目中，用户只需输入想要分析的目标，并上传原始数据，系统将利用 A1自动生成可视化图表和学习的分析结论。这样，即使是对数据分析一窍不通的人也能轻松使用该系统。</font>
 
-[toc]
-## 模板特点
+<font style="color:#000000;"></font>
 
-### 主流框架 & 特性
+<h1 id="sqUoN"><font style="color:#000000;">二、项目介绍</font></h1>
+Q 传统 BI 平台需要按照以下步骤[查看传统 BI 平台示例]:
 
-- Spring Boot 2.7.x（贼新）
-- Spring MVC
-- MyBatis + MyBatis Plus 数据访问（开启分页）
-- Spring Boot 调试工具和项目处理器
-- Spring AOP 切面编程
-- Spring Scheduler 定时任务
-- Spring 事务注解
+1.手动上传数据
 
-### 数据存储
+2.手动选择分析所需的数据行和列(由数据分析师完成
 
-- MySQL 数据库
-- Redis 内存数据库
-- Elasticsearch 搜索引擎
-- 腾讯云 COS 对象存储
+3.需要手动选择所需的图表类型(由数据分析师完成)
 
-### 工具类
+4.生成图表并保存配置
 
-- Easy Excel 表格处理
-- Hutool 工具库
-- Apache Commons Lang3 工具类
-- Lombok 注解
+本次项目所设想的智能 BI 平台
 
-### 业务特性
-
-- 业务代码生成器（支持自动生成 Service、Controller、数据模型代码）
-- Spring Session Redis 分布式登录
-- 全局请求响应拦截器（记录日志）
-- 全局异常处理器
-- 自定义错误码
-- 封装通用响应类
-- Swagger + Knife4j 接口文档
-- 自定义权限注解 + 全局校验
-- 全局跨域处理
-- 长整数丢失精度解决
-- 多环境配置
+与传统的 B不同，我们的解决方案允许用户(数据分析者)仅需导入最最最原始的数据集并输入分析目标(例如网站增长趋势)，即可利用 AI 自动生成符合要求的图表和结论，从而显著提升分析效率。
 
 
-## 业务功能
 
-- 提供示例 SQL（用户、帖子、帖子点赞、帖子收藏表）
-- 用户登录、注册、注销、更新、检索、权限管理
-- 帖子创建、删除、编辑、更新、数据库检索、ES 灵活检索
-- 帖子点赞、取消点赞
-- 帖子收藏、取消收藏、检索已收藏帖子
-- 帖子全量同步 ES、增量同步 ES 定时任务
-- 支持微信开放平台登录
-- 支持微信公众号订阅、收发消息、设置菜单
-- 支持分业务的文件上传
+<h1 id="hsevd">三、需求分析</h1>
+:::warning
++ 智能分析:用户输入目标和原始数据(图标类型)，可以自动生成图标和分析结论
++ 图表管理(增删改查)
++ 图表生成的异步化(消息队列)
++ 对接 Al 能力
 
-### 单元测试
-
-- JUnit5 单元测试
-- 示例单元测试类
-
-### 架构设计
-
-- 合理分层
+:::
 
 
-## 快速上手
 
-> 所有需要修改的地方鱼皮都标记了 `todo`，便于大家找到修改的位置~
 
-### MySQL 数据库
 
-1）修改 `application.yml` 的数据库配置为你自己的：
+<h1 id="A81bF">四、架构设计</h1>
+基础流程:客户端输入分析诉求和原始数据，向业务后端发送请求。业务后端利用 A服务处理客户端数据，保持到数据库，并生成图表。处理后的数据由业务后端发送给 A服务，A服务生成结果并返回给后端，最终将结果返可给客户端展示。
 
-```yml
-spring:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/my_db
-    username: root
-    password: 123456
-```
+ps.要根据用户的输入生成图表，所以要借用 AI 服务。
 
-2）执行 `sql/create_table.sql` 中的数据库语句，自动创建库表
+![](https://cdn.nlark.com/yuque/0/2024/png/44351073/1723018981361-976b22ac-dffa-4dc2-bdd3-3fabc499fe29.png)
 
-3）启动项目，访问 `http://localhost:8101/api/doc.html` 即可打开接口文档，不需要写前端就能在线调试接口了~
 
-![](doc/swagger.png)
 
-### Redis 分布式登录
+上图的流程会出现一个问题:
 
-1）修改 `application.yml` 的 Redis 配置为你自己的：
+假设一个 A1 服务生成图表和分析结果要等 50 秒，如果有大量用户需要生成图表，每个人都需要等待 50 秒，那么AI服务可能无法承受这种压力。为了解决这个问题，可以采用消息队列技术。
 
-```yml
-spring:
-  redis:
-    database: 1
-    host: localhost
-    port: 6379
-    timeout: 5000
-    password: 123456
-```
+这类似于在餐厅点餐时，为了避免顾客排队等待，餐厅会给顾客一个取餐号码，让顾客可以先去坐下或做其他事情，等到餐厅叫到他们的号码时再去领取餐点，这样就能节省等待时间。
 
-2）修改 `application.yml` 中的 session 存储方式：
+同样地，通过消息队列，用户可以提交生成图表的请求，这些请求会进入队列，AI服务会依次处理队列中的请求从而避免了同时处理大量请求造成的压力，同时也能更好地控制资源的使用。
 
-```yml
-spring:
-  session:
-    store-type: redis
-```
+:::warning
+优化流程(异步化):客户端输入分析诉求和原始数据，向业务后端发送请求。业务后端将请求事件放入消息队列，并为客户端生成取餐号，让要生成图表的客户端去排队，消息队列根据 A1服务负载情况，定期检查进度，如果AI服务还能处理更多的图表生成请求，就向任务处理模块发送消息，
 
-3）移除 `MainApplication` 类开头 `@SpringBootApplication` 注解内的 exclude 参数：
+任务处理模块调用 A服务处理客户端数据，A服务异步生成结果返回给后端并保存到数据库，当后端的 A服务生成完毕后，可以通过向前端发送通知的方式，或者通过业务后端监控数据库中图表生成服务的状态，来确定生成结果是否可用。若生成结果可用，前端即可获取并处理相应的数据，最终将结果返回给客户端展示。(在此期间，用户可以去做自己的事情)
 
-修改前：
+:::
+
+![](https://cdn.nlark.com/yuque/0/2024/png/44351073/1723019672128-33363dee-5563-4326-9521-c023502d1092.png)
+
+
+
+<h1 id="Jq6J0">五、技术栈</h1>
+前端:
+
++ React
++ 开发框架 Umi + Ant Design Pro
++ 可视化开发库(Echarts + Highcharts + AntV)<可视化会涉及到图表的生成>
++ umi openapi 代码生成(自动生成后端调用代码)<前后联调开发>
+
+
+
+后端:
+
++ Spring Boot (万用 Java 后端项目模板，快速搭建基础框架，避免重复写代码)
++ MySQL数据库
++ MyBatis Plus数据访问框架
++ 消息队列(RabbitMO)
++ AI 能力(Open Al接口开发/星球提供现成的 AI接口)
++ Excel 的上传和数据的解析(Easy Excel)
++ Swagger + Knife4j 项目接囗文档
++ Hutool 工具库
+
+
+
+<h1 id="tvnqZ">六、功能开发</h1>
+<h3 id="PoOJY">1.初始化项目框架</h3>
+<h3 id="MK9x6">2.智能分析业务开发</h3>
+<h4 id="dV8Hp">业务流程：</h4>
+1. 用户输入
+    - 输入分析目标
+    - 输入需要分析的图表类型
+    - 选择上传原数据文件
+2. 后端校验
+    - 用户输入是否合法
+    - 成本控制（统计次数和校验、鉴权）
+    - 表格处理
+
+3.AI调用
+
+    - 将用户输入字符与预设好提问词的Ai拼接返回所需数据
+
+<h4 id="Y862O">接口开发：</h4>
+允许用户通过此接口上传图表。
+
+:::tips
++ **URL**：`/chart/gen`
++ **Method**：`Post`
++ **需要登录**：<font style="background:#F6E1AC;color:#664900">是</font>
++ **需要鉴权**：<font style="background:#F6E1AC;color:#664900">是</font>
++ **请求参数：**MultipartFile，ChartgetRequest
+
+:::
+
+---
+
+1. 步骤一：补全数据库字段，添加name字段
+
+
+
+2. 步骤二：使用EasyExecel，编写ExeclUtils工具类
 
 ```java
-@SpringBootApplication(exclude = {RedisAutoConfiguration.class})
-```
+public static String excelToCsv(MultipartFile multipartFile) {
 
-修改后：
+List<Map<Integer, String>> list = null;
+
+try {
+    list = EasyExcel.read(multipartFile.getInputStream())
+    .excelType(ExcelTypeEnum.XLSX)
+    .sheet()
+    .headRowNumber(0)
+    .doReadSync();
+} catch (IOException e) {
+    log.error("表格处理错误",e);
+}
+
+if (CollUtil.isEmpty(list)) {
+    return null;
+}
+//转换为csv
+// 创建StringBuilder对象用于构建字符串（提高拼接效率）
+StringBuilder stringBuilder = new StringBuilder();
+
+// 读取表头信息
+LinkedHashMap<Integer, String> stringLinkedMap = (LinkedHashMap) list.get(0);
+// 过滤掉空的表头项，并收集到一个新列表中
+List<String> list2 = stringLinkedMap.values().stream().filter(ObjectUtils::isNotEmpty).collect(Collectors.toList());
+// 将表头项用逗号拼接，并追加到stringBuilder中
+stringBuilder.append(StringUtils.join(list2,","));
+
+// 读取数据行信息
+// 从第二个元素开始遍历list，假设其余元素为数据行
+for (int i = 1; i < list.size(); i++) {
+    // 将每个数据行转换为LinkedHashMap
+    LinkedHashMap<Integer, String> map = (LinkedHashMap) list.get(i);
+    // 过滤掉空的数据项，并收集到一个新列表中
+    List<String> list1 = map.values().stream().filter(ObjectUtils::isNotEmpty).collect(Collectors.toList());
+    // 将数据项用逗号拼接，并追加到stringBuilder中，每行数据后追加换行符
+    stringBuilder.append(StringUtils.join(list1,",")).append("\n");
+}
+
+// 返回构建完成的字符串
+return stringBuilder.toString();
 
 
-```java
-@SpringBootApplication
-```
-
-### Elasticsearch 搜索引擎
-
-1）修改 `application.yml` 的 Elasticsearch 配置为你自己的：
-
-```yml
-spring:
-  elasticsearch:
-    uris: http://localhost:9200
-    username: root
-    password: 123456
-```
-
-2）复制 `sql/post_es_mapping.json` 文件中的内容，通过调用 Elasticsearch 的接口或者 Kibana Dev Tools 来创建索引（相当于数据库建表）
-
-```
-PUT post_v1
-{
- 参数见 sql/post_es_mapping.json 文件
 }
 ```
 
-这步不会操作的话需要补充下 Elasticsearch 的知识，或者自行百度一下~
 
-3）开启同步任务，将数据库的帖子同步到 Elasticsearch
 
-找到 job 目录下的 `FullSyncPostToEs` 和 `IncSyncPostToEs` 文件，取消掉 `@Component` 注解的注释，再次执行程序即可触发同步：
+3. 步骤三
++  预设Ai提问词，控制	输入格式，返回符合要求的数据，例如：
+
+![](https://cdn.nlark.com/yuque/0/2024/png/44351073/1723597911017-cdc31eae-2df6-4363-8de0-7b2d046e38ed.png)
+
++ 为了让 AI 更好地理解我们的输入，并给出预期精确的输出，需要严格控制我们的提问词。如下：
+
+![](https://cdn.nlark.com/yuque/0/2024/png/44351073/1723621266736-d1f61fef-98c8-4262-a4bb-4af396c267e7.png)
+
+
+
+
+
++ 导入AI-SDK依赖
 
 ```java
-// todo 取消注释开启任务
-//@Component
+<dependency>
+<groupId>com.yucongming</groupId>
+<artifactId>yucongming-java-sdk</artifactId>
+<version>0.0.4</version>
+</dependency>
 ```
 
-### 业务代码生成器
 
-支持自动生成 Service、Controller、数据模型代码，配合 MyBatisX 插件，可以快速开发增删改查等实用基础功能。
 
-找到 `generate.CodeGenerator` 类，修改生成参数和生成路径，并且支持注释掉不需要的生成逻辑，然后运行即可。
++ 封装工具类
 
+```java
+@Service
+public class AiManager {
+
+    @Resource
+    private YuCongMingClient yuCongMingClient;
+
+    public String doChat(Long id,String message){
+
+        DevChatRequest chatRequest = new DevChatRequest();
+        chatRequest.setModelId(id);
+        chatRequest.setMessage(message);
+
+        BaseResponse<DevChatResponse> responseBaseResponse = yuCongMingClient.doChat(chatRequest);
+
+        ThrowUtils.throwIf(responseBaseResponse == null, ErrorCode.SYSTEM_ERROR,"AI 响应错误");
+        return responseBaseResponse.getData().getContent();
+
+    }
+}
 ```
-// 指定生成参数
-String packageName = "com.yupi.springbootinit";
-String dataName = "用户评论";
-String dataKey = "userComment";
-String upperDataKey = "UserComment";
+
++ 封装返回给前端包装类
+
+```java
+@Data
+public class BiResponse implements Serializable {
+    private String genChart;
+    private String genResult;
+    private Long chartId;
+
+    
+}
 ```
 
-生成代码后，可以移动到实际项目中，并且按照 `// todo` 注释的提示来针对自己的业务需求进行修改。
++ 将用户输入的数据进行拼接
+
+
+
+```java
+public BaseResponse<BiResponse> intelGetByAi(MultipartFile multipartFile, ChartgetRequest chartgetRequest, HttpServletRequest request) {
+    String goal = chartgetRequest.getGoal();
+    String name = chartgetRequest.getName();
+    String chartType = chartgetRequest.getChartType();
+    //校验
+    ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR,"目标为空！");
+    ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() >100 ,ErrorCode.PARAMS_ERROR,"字符长度不能大于100！");
+
+    //拼接用户输入
+    StringBuilder userInput = new StringBuilder();
+
+    userInput.append("分析需求:").append("\n");
+    //拼接分析目标
+    if (StrUtil.isNotBlank(chartType)) {
+        goal+= goal + ",请使用" + chartType;
+    }
+    userInput.append(goal).append("\n");
+    userInput.append("原始数据").append("\n");
+    //拼接分析数据
+    String toCsv = ExeclUtils.excelToCsv(multipartFile);
+    userInput.append(toCsv).append("\n");
+
+
+    String result = aiManager.doChat(AI_ID, userInput.toString());
+
+    String[] split = result.split("【【【【【");
+
+    if (split.length < 3) {
+        throw  new BusinessException(ErrorCode.SYSTEM_ERROR,"AI生成错误");
+    }
+    //获取当前登录用户
+    User loginUser = userService.getLoginUser(request);
+
+    String genChart = split[1].trim();
+    String genResult = split[2].trim();
+    Chart chart = new Chart();
+    chart.setGoal(goal);
+    chart.setName(name);
+    chart.setChartData(toCsv);
+    chart.setChartType(chartType);
+    chart.setGenChart(genChart);
+    chart.setGenResult(genResult);
+    chart.setUserId(loginUser.getId());
+
+    boolean save = save(chart);
+    ThrowUtils.throwIf(!save,ErrorCode.SYSTEM_ERROR,"图表保存失败");
+    BiResponse biResponse = new BiResponse();
+    biResponse.setGenChart(chart.getGenChart());
+    biResponse.setGenResult(chart.getGenResult());
+    biResponse.setChartId(chart.getId());
+
+    return ResultUtils.success(biResponse);
+}
+```
+
+
+
+<h1 id="ylRzJ">七、系统优化</h1>
+<h2 id="AA3Rt">现有问题</h2>
++ 若有用户故意上传超大文件，攻击网站,网站不安全
++ 目前所有生成图表都会插入到chart表中，若将来数据量变大，查询效率慢，用户体验下降
++ 成本问题，用户每调用一次AIGC就会消耗tokens，真正上线的时候，需要限制用户使用次数。若用户频繁发起请求，会给服务器带来压力
+
+<h2 id="YQrPf">解决方案</h2>
+针对第一个问题：做简单的文件校验
+
+针对第三个问题：使用限流的思想
+
+<h2 id="r9AqZ">3.优化业务实现</h2>
+问题场景：面临服务处理能力有限，或者接口处理(或返回)时长较长时，就应该考虑采用异步化。
+
+具体来看，我们可能会遇到以下问题：
+
+1. 用户等待时间过长：这是因为需要等待 AI 生成结果。
+
+2. 业务服务器可能面临大量请求处理，导致系统资源紧张，严重时甚至可能导致服务器宕机或无法处理新的请求。
+
+3. 调用的第三方服务(AI 能力)的处理能力有限。比如每 3 秒只能处理 1 个请求，就会导致 AI 处理不过来；严重时，AI 可能会对我们的后台系统拒绝服务。
+
+综上所述，面对这些问题，我们应当考虑异步化的解决方案。
+
+<h4 id="pgqnt"></h4>
+
+
+<h2 id="oRZo2"></h2>
+
+
+<h2 id="paCEp"></h2>
+<h2 id="fxt5v"></h2>
+
+
+
+
